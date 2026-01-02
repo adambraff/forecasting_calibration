@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forecasting Contest Calibration</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; margin-bottom: 5px; }
+        .subtitle { color: #666; margin-bottom: 20px; }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4a90d9;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: #4a90d9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover { background: #3a7bc8; }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover { background: #5a6268; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+        }
+        .stat:nth-child(1) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat:nth-child(2) { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat:nth-child(3) { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .stat-label { font-size: 11px; text-transform: uppercase; opacity: 0.9; }
+        .matches-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .match-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .match-item:hover {
+            background: #f8f9fa;
+        }
+        .match-item:last-child { border-bottom: none; }
+        .match-item input {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+        }
+        .match-item .name {
+            flex: 1;
+            font-size: 14px;
+        }
+        .match-item .score {
+            color: #888;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .match-item .years {
+            color: #4a90d9;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .year-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .year-row:last-child { border-bottom: none; }
+        .brier-good { color: #28a745; font-weight: bold; }
+        .brier-ok { color: #ffc107; font-weight: bold; }
+        .brier-bad { color: #dc3545; font-weight: bold; }
+        #chart { width: 100%; height: 500px; }
+        .instructions { color: #666; font-size: 14px; margin-top: 10px; }
+        .help-text { color: #888; font-size: 13px; margin-bottom: 10px; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Forecasting Contest Calibration</h1>
+    <p class="subtitle">Analyze forecaster calibration across the Narcissist Forecasting Contest (2017-2025)</p>
+
+    <div id="loadingMsg" class="card loading">Loading contest data...</div>
+
+    <div id="mainContent" style="display: none;">
+        <div class="search-box">
+            <input type="text" id="nameInput" placeholder="Enter forecaster name to search..."
+                   onkeypress="if(event.key==='Enter') searchNames()">
+            <button onclick="searchNames()">Search</button>
+        </div>
+
+        <div id="matchesSection" class="card" style="display: none;">
+            <h3>Select Matching Names</h3>
+            <p class="help-text">Check all the names that belong to the same person, then click "Show Calibration"</p>
+            <div id="matchesList" class="matches-list"></div>
+            <div class="button-row">
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="selectNone()" class="secondary">Select None</button>
+                <button onclick="showCalibration()">Show Calibration</button>
+            </div>
+        </div>
+
+        <div id="results" style="display: none;">
+            <div class="card">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="totalPreds">-</div>
+                        <div class="stat-label">Total Predictions</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="brierScore">-</div>
+                        <div class="stat-label">Brier Score</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="yearsActive">-</div>
+                        <div class="stat-label">Years Active</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Calibration Curve</h3>
+                <p class="instructions">Perfect calibration = diagonal line. Above the line = underconfident. Below = overconfident.</p>
+                <div id="chart"></div>
+            </div>
+
+            <div class="card">
+                <h3>Year-by-Year Performance</h3>
+                <div id="yearlyStats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let CONTEST_DATA = {};
+        let ALL_NAMES = [];
+
+        // Load data on page load
+        fetch('https://jsonblob.com/api/jsonBlob/019b7cbb-b66a-74cc-8776-f1873775cb78')
+            .then(r => r.json())
+            .then(data => {
+                CONTEST_DATA = data;
+                ALL_NAMES = getAllNames();
+                document.getElementById('loadingMsg').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            })
+            .catch(err => {
+                document.getElementById('loadingMsg').innerHTML = 'Error loading data: ' + err.message;
+            });
+
+        function getAllNames() {
+            const names = new Set();
+            for (const [year, data] of Object.entries(CONTEST_DATA)) {
+                for (const f of (data.forecasters || [])) {
+                    names.add(f.name);
+                }
+            }
+            return Array.from(names).sort();
+        }
+
+        function getNameYears(name) {
+            const years = [];
+            for (const [year, data] of Object.entries(CONTEST_DATA)) {
+                for (const f of (data.forecasters || [])) {
+                    if (f.name === name) {
+                        years.push(year);
+                        break;
+                    }
+                }
+            }
+            return years.sort();
+        }
+
+        // Simple fuzzy matching
+        function fuzzyScore(query, target) {
+            query = query.toLowerCase();
+            target = target.toLowerCase();
+
+            if (target.includes(query)) return 90;
+            if (query.includes(target)) return 85;
+
+            const queryWords = query.split(/\s+/);
+            const targetWords = target.split(/\s+/);
+            let matchedWords = 0;
+            for (const qw of queryWords) {
+                for (const tw of targetWords) {
+                    if (tw.includes(qw) || qw.includes(tw)) {
+                        matchedWords++;
+                        break;
+                    }
+                }
+            }
+            if (matchedWords > 0) {
+                return 50 + (matchedWords / queryWords.length) * 40;
+            }
+
+            // Levenshtein-ish for short strings
+            let matches = 0;
+            for (let i = 0; i < query.length; i++) {
+                if (target.includes(query[i])) matches++;
+            }
+            return Math.round((matches / query.length) * 60);
+        }
+
+        function searchNames() {
+            const query = document.getElementById('nameInput').value.trim();
+            if (!query) return;
+
+            const matches = ALL_NAMES
+                .map(name => [name, fuzzyScore(query, name)])
+                .filter(([name, score]) => score >= 40)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 30);
+
+            const list = document.getElementById('matchesList');
+            list.innerHTML = matches.map(([name, score], idx) => {
+                const years = getNameYears(name).join(', ');
+                return `
+                    <label class="match-item">
+                        <input type="checkbox" id="match_${idx}" value="${name}" ${score >= 80 ? 'checked' : ''}>
+                        <span class="name">${name}</span>
+                        <span class="score">${score}% match</span>
+                        <span class="years">${years}</span>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('matchesSection').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function selectAll() {
+            document.querySelectorAll('#matchesList input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        function selectNone() {
+            document.querySelectorAll('#matchesList input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        function showCalibration() {
+            const selected = [];
+            document.querySelectorAll('#matchesList input[type="checkbox"]:checked').forEach(cb => {
+                selected.push(cb.value);
+            });
+
+            if (selected.length === 0) {
+                alert('Please select at least one name');
+                return;
+            }
+
+            // Get predictions
+            const allPreds = [];
+            const yearlyStats = {};
+
+            for (const [year, data] of Object.entries(CONTEST_DATA).sort()) {
+                const props = {};
+                for (const p of (data.propositions || [])) {
+                    props[p.number] = p.outcome;
+                }
+
+                for (const forecaster of (data.forecasters || [])) {
+                    if (selected.includes(forecaster.name)) {
+                        const yearPreds = [];
+                        for (const [propNum, forecast] of Object.entries(forecaster.predictions)) {
+                            const num = parseInt(propNum);
+                            if (num in props) {
+                                allPreds.push([forecast, props[num]]);
+                                yearPreds.push([forecast, props[num]]);
+                            }
+                        }
+                        if (yearPreds.length > 0) {
+                            const brier = yearPreds.reduce((sum, [f, o]) => sum + Math.pow(f - o, 2), 0) / yearPreds.length;
+                            yearlyStats[year] = {
+                                name: forecaster.name,
+                                n: yearPreds.length,
+                                brier: brier
+                            };
+                        }
+                    }
+                }
+            }
+
+            if (allPreds.length === 0) {
+                alert('No predictions found');
+                return;
+            }
+
+            // Calculate calibration
+            const nBins = 10;
+            const bins = [];
+            for (let i = 0; i < nBins; i++) {
+                const low = i / nBins;
+                const high = (i + 1) / nBins;
+                const inBin = allPreds.filter(([f, o]) =>
+                    (f >= low && f < high) || (i === nBins - 1 && f === high)
+                );
+                if (inBin.length > 0) {
+                    bins.push({
+                        forecast: inBin.reduce((s, [f, o]) => s + f, 0) / inBin.length,
+                        outcome: inBin.reduce((s, [f, o]) => s + o, 0) / inBin.length,
+                        count: inBin.length
+                    });
+                }
+            }
+
+            const brier = allPreds.reduce((sum, [f, o]) => sum + Math.pow(f - o, 2), 0) / allPreds.length;
+
+            // Update stats
+            document.getElementById('totalPreds').textContent = allPreds.length;
+            document.getElementById('brierScore').textContent = brier.toFixed(4);
+            document.getElementById('yearsActive').textContent = Object.keys(yearlyStats).length;
+
+            // Update yearly stats
+            const yearlyDiv = document.getElementById('yearlyStats');
+            yearlyDiv.innerHTML = Object.entries(yearlyStats)
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([year, stats]) => {
+                    const brierClass = stats.brier < 0.2 ? 'brier-good' : stats.brier < 0.25 ? 'brier-ok' : 'brier-bad';
+                    return `
+                        <div class="year-row">
+                            <span><strong>${year}</strong> as "${stats.name}"</span>
+                            <span>${stats.n} predictions &nbsp; <span class="${brierClass}">Brier: ${stats.brier.toFixed(4)}</span></span>
+                        </div>
+                    `;
+                }).join('');
+
+            // Draw chart
+            const trace1 = {
+                x: bins.map(b => b.forecast),
+                y: bins.map(b => b.outcome),
+                mode: 'markers+lines',
+                name: 'Actual Calibration',
+                marker: {
+                    size: bins.map(b => Math.min(30, 10 + b.count / 3)),
+                    color: '#4a90d9',
+                    line: { width: 2, color: 'white' }
+                },
+                line: { color: '#4a90d9', width: 3 },
+                text: bins.map(b => `${b.count} predictions<br>Forecast: ${(b.forecast * 100).toFixed(1)}%<br>Outcome: ${(b.outcome * 100).toFixed(1)}%`),
+                hoverinfo: 'text'
+            };
+
+            const trace2 = {
+                x: [0, 1],
+                y: [0, 1],
+                mode: 'lines',
+                name: 'Perfect Calibration',
+                line: { color: 'rgba(0,0,0,0.2)', dash: 'dash', width: 2 }
+            };
+
+            const layout = {
+                xaxis: { title: 'Forecast Probability', range: [0, 1], dtick: 0.1, gridcolor: '#f0f0f0' },
+                yaxis: { title: 'Actual Outcome Rate', range: [0, 1], dtick: 0.1, gridcolor: '#f0f0f0' },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 20 },
+                plot_bgcolor: 'white'
+            };
+
+            Plotly.newPlot('chart', [trace2, trace1], layout);
+
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
