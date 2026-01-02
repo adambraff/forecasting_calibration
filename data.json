@@ -131,26 +131,6 @@
         "number": 25,
         "text": "25. The winner of this contest, not counting the resolution of this proposition itself, will be an extremist (more than half of forecasts 0 or 100%)",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 0.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 0.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.2459593476
       }
     ],
     "forecasters": [
@@ -3321,26 +3301,6 @@
         "number": 25,
         "text": "25. The average participant\u2019s Brier score in this contest, not counting this proposition, will be worse than 0.25, the score guaranteed by predicting 50% for everything [expected 12/1/18]",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 0.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 0.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.2754945391
       }
     ],
     "forecasters": [
@@ -5549,26 +5509,6 @@
         "number": 25,
         "text": "25. Russia will invade or annex territory from another country by November 30",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 1.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 1.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.2899274521
       }
     ],
     "forecasters": [
@@ -7871,26 +7811,6 @@
         "number": 25,
         "text": "25. At least 3 of Bob Barker, Mel Brooks, Clint Eastwood, and Betty White will be alive on Thanksgiving",
         "outcome": 1.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 0.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 0.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.2882260796
       }
     ],
     "forecasters": [
@@ -10795,26 +10715,6 @@
         "number": 25,
         "text": "25. A featured cast member from any season of Saturday Night Live will die before Thanksgiving",
         "outcome": 1.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 1.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 1.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.1836197623
       }
     ],
     "forecasters": [
@@ -13407,26 +13307,6 @@
         "number": 25,
         "text": "25. Team USA will survive the group stage of the FIFA World Cup [expected December 2]",
         "outcome": 1.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 0.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 0.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.3372171994
       }
     ],
     "forecasters": [
@@ -17314,26 +17194,6 @@
         "number": 25,
         "text": "25. Either India or Pakistan will win the 2023 Cricket World Cup [expected 11/26] ",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 0.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 0.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.23111284669999999
       }
     ],
     "forecasters": [
@@ -20986,26 +20846,6 @@
         "number": 25,
         "text": "25. By December 1, Apple will report that Vision Pro has sold more than 750,000 units worldwide",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 1.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 1.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.30772444379999997
       }
     ],
     "forecasters": [
@@ -26983,26 +26823,6 @@
         "number": 25,
         "text": "25. Noam Chomsky will outlive (in the sense of survive for some time) Dick Van Dyke",
         "outcome": 0.0
-      },
-      {
-        "number": 26,
-        "text": "Count of resolved",
-        "outcome": 0.25
-      },
-      {
-        "number": 29,
-        "text": "Resolved outcome",
-        "outcome": 1.0
-      },
-      {
-        "number": 30,
-        "text": "Blended scenario",
-        "outcome": 1.0
-      },
-      {
-        "number": 31,
-        "text": "Standard deviation",
-        "outcome": 0.2393958038
       }
     ],
     "forecasters": [
