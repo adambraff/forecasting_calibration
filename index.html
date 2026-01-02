@@ -186,7 +186,7 @@
         let ALL_NAMES = [];
 
         // Load data on page load
-        fetch('https://jsonblob.com/api/jsonBlob/019b7cbb-b66a-74cc-8776-f1873775cb78')
+        fetch('./data.json')
             .then(r => r.json())
             .then(data => {
                 CONTEST_DATA = data;
