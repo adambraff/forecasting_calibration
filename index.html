@@ -50,11 +50,8 @@
         .match-item .given-name { font-size: 13px; color: #666; }
         .match-item .year { color: #999; font-size: 11px; margin-left: 6px; }
         .button-row { display: flex; gap: 10px; margin-top: 15px; }
-        .year-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .brier-good { color: #28a745; font-weight: bold; }
-        .brier-ok { color: #ffc107; font-weight: bold; }
-        .brier-bad { color: #dc3545; font-weight: bold; }
         #chart { width: 100%; height: 500px; }
+        #yearChart { width: 100%; height: 350px; }
         .instructions { color: #666; font-size: 14px; margin-top: 10px; }
         .help-text { color: #888; font-size: 13px; margin-bottom: 10px; }
     </style>
@@ -94,7 +91,8 @@
         </div>
         <div class="card">
             <h3>Year-by-Year Performance</h3>
-            <div id="yearlyStats"></div>
+            <p class="instructions">Bars show Brier score (lower is better). Gray line = contest average for that year.</p>
+            <div id="yearChart"></div>
         </div>
     </div>
 
@@ -32227,8 +32225,9 @@
         const CONTEST_DATA = JSON.parse(document.getElementById('contest-data').textContent);
         
         // Build lookup structures
-        const ALL_FORECASTERS = [];  // {name, standard_name, year}
+        const ALL_FORECASTERS = [];
         const STANDARD_NAMES = new Set();
+        const YEAR_AVERAGES = {};  // Pre-calculate average Brier per year
         
         for (const [year, data] of Object.entries(CONTEST_DATA)) {
             for (const f of (data.forecasters || [])) {
@@ -32240,6 +32239,26 @@
                 });
                 STANDARD_NAMES.add(stdName);
             }
+            
+            // Calculate year average Brier
+            const props = {};
+            for (const p of (data.propositions || [])) props[p.number] = p.outcome;
+            
+            const yearBriers = [];
+            for (const f of (data.forecasters || [])) {
+                const preds = [];
+                for (const [propNum, forecast] of Object.entries(f.predictions)) {
+                    const num = parseInt(propNum);
+                    if (num in props) preds.push([forecast, props[num]]);
+                }
+                if (preds.length > 0) {
+                    const brier = preds.reduce((s, [f, o]) => s + (f - o) ** 2, 0) / preds.length;
+                    yearBriers.push(brier);
+                }
+            }
+            if (yearBriers.length > 0) {
+                YEAR_AVERAGES[year] = yearBriers.reduce((a, b) => a + b, 0) / yearBriers.length;
+            }
         }
 
         function fuzzyScore(query, target) {
@@ -32250,7 +32269,6 @@
             if (target.includes(query)) return 90;
             if (query.includes(target) && target.length > 3) return 85;
             
-            // Word matching
             const queryWords = query.split(/\s+/).filter(w => w.length > 1);
             const targetWords = target.split(/\s+/).filter(w => w.length > 1);
             let matchedWords = 0;
@@ -32263,7 +32281,6 @@
                 return 60 + (matchedWords / Math.max(queryWords.length, 1)) * 30;
             }
             
-            // Character matching (weak)
             let m = 0;
             for (let i = 0; i < query.length; i++) if (target.includes(query[i])) m++;
             return Math.round((m / query.length) * 40);
@@ -32273,13 +32290,9 @@
             const query = document.getElementById('nameInput').value.trim();
             if (!query) return;
 
-            // Score each standard name
             const standardScores = [];
             for (const stdName of STANDARD_NAMES) {
-                // Score against standard name
                 let stdScore = fuzzyScore(query, stdName);
-                
-                // Also check given names that map to this standard name
                 const entries = ALL_FORECASTERS.filter(f => f.standard_name === stdName);
                 let bestGivenScore = 0;
                 for (const e of entries) {
@@ -32288,37 +32301,23 @@
                         if (score > bestGivenScore) bestGivenScore = score;
                     }
                 }
-                
-                // Use the best score, but track if it came from standard name
                 const bestScore = Math.max(stdScore, bestGivenScore);
                 const matchedStandard = stdScore >= bestGivenScore;
                 
                 if (bestScore >= 50) {
-                    standardScores.push({
-                        stdName,
-                        score: bestScore,
-                        stdScore,
-                        matchedStandard
-                    });
+                    standardScores.push({ stdName, score: bestScore, stdScore, matchedStandard });
                 }
             }
 
-            // Sort by score, limit results
             standardScores.sort((a, b) => b.score - a.score);
             const topMatches = standardScores.slice(0, 20);
-
-            // Determine auto-check threshold: only check if score >= 90 AND matched the standard name
-            // Or if there's a single very high match
             const hasStrongMatch = topMatches.length > 0 && topMatches[0].score >= 95;
 
-            // Build grouped HTML
             const list = document.getElementById('matchesList');
             list.innerHTML = topMatches.map(({stdName, score, stdScore, matchedStandard}, idx) => {
                 const entries = ALL_FORECASTERS.filter(f => f.standard_name === stdName);
                 const years = [...new Set(entries.map(e => e.year))].sort();
                 const aliases = entries.filter(e => e.name !== stdName);
-                
-                // Auto-check logic: only if matched standard name with high score, or is the top strong match
                 const shouldCheck = (matchedStandard && stdScore >= 90) || (idx === 0 && hasStrongMatch && matchedStandard);
                 
                 let html = `<div class="match-group">
@@ -32328,7 +32327,6 @@
                         <span class="years">${years.join(', ')}</span>
                     </label>`;
                 
-                // Show aliases if any
                 for (const entry of aliases) {
                     html += `<div class="match-item">
                         <span class="given-name">"${entry.name}"</span>
@@ -32346,6 +32344,14 @@
         function selectAll() { document.querySelectorAll('#matchesList input[type="checkbox"]').forEach(cb => cb.checked = true); }
         function selectNone() { document.querySelectorAll('#matchesList input[type="checkbox"]').forEach(cb => cb.checked = false); }
 
+        // Color function: green for low Brier (good), red for high Brier (bad)
+        function brierToColor(brier, minBrier = 0.1, maxBrier = 0.35) {
+            const t = Math.max(0, Math.min(1, (brier - minBrier) / (maxBrier - minBrier)));
+            const r = Math.round(255 * t);
+            const g = Math.round(255 * (1 - t));
+            return `rgb(${r}, ${g}, 50)`;
+        }
+
         function showCalibration() {
             const selectedStandard = new Set();
             document.querySelectorAll('#matchesList input[type="checkbox"]:checked').forEach(cb => {
@@ -32354,7 +32360,6 @@
 
             if (!selectedStandard.size) { alert('Please select at least one name'); return; }
 
-            // Get all given names for selected standard names
             const selectedGiven = new Set();
             for (const f of ALL_FORECASTERS) {
                 if (selectedStandard.has(f.standard_name)) {
@@ -32392,7 +32397,6 @@
             
             if (!allPreds.length) { alert('No predictions found'); return; }
 
-            // Calculate calibration bins
             const bins = [];
             for (let i = 0; i < 10; i++) {
                 const low = i / 10, high = (i + 1) / 10;
@@ -32409,12 +32413,7 @@
             document.getElementById('brierScore').textContent = brier.toFixed(4);
             document.getElementById('yearsActive').textContent = Object.keys(yearlyStats).length;
 
-            document.getElementById('yearlyStats').innerHTML = Object.entries(yearlyStats)
-                .sort((a, b) => b[0].localeCompare(a[0])).map(([year, s]) => {
-                    const cls = s.brier < 0.2 ? 'brier-good' : s.brier < 0.25 ? 'brier-ok' : 'brier-bad';
-                    return `<div class="year-row"><span><b>${year}</b> as ${s.name}</span><span>${s.n} preds <span class="${cls}">Brier: ${s.brier.toFixed(4)}</span></span></div>`;
-                }).join('');
-
+            // Calibration chart
             Plotly.newPlot('chart', [
                 { x: [0, 1], y: [0, 1], mode: 'lines', name: 'Perfect', line: { color: 'rgba(0,0,0,0.2)', dash: 'dash', width: 2 } },
                 { x: bins.map(b => b.forecast), y: bins.map(b => b.outcome), mode: 'markers+lines', name: 'Actual',
@@ -32424,6 +32423,48 @@
             ], { xaxis: { title: 'Forecast Probability', range: [0, 1], dtick: 0.1, gridcolor: '#f0f0f0' },
                  yaxis: { title: 'Actual Outcome Rate', range: [0, 1], dtick: 0.1, gridcolor: '#f0f0f0' },
                  showlegend: true, legend: { x: 0.02, y: 0.98 }, margin: { t: 20 }, plot_bgcolor: 'white' });
+
+            // Year-by-year bar chart
+            const sortedYears = Object.keys(yearlyStats).sort();
+            const briers = sortedYears.map(y => yearlyStats[y].brier);
+            const avgBriers = sortedYears.map(y => YEAR_AVERAGES[y] || 0);
+            const colors = briers.map(b => brierToColor(b));
+            const hoverText = sortedYears.map(y => {
+                const s = yearlyStats[y];
+                const avg = YEAR_AVERAGES[y];
+                const diff = s.brier - avg;
+                const diffStr = diff >= 0 ? `+${diff.toFixed(4)}` : diff.toFixed(4);
+                return `${y}: ${s.name}<br>Brier: ${s.brier.toFixed(4)}<br>Contest avg: ${avg.toFixed(4)}<br>Diff: ${diffStr}`;
+            });
+
+            Plotly.newPlot('yearChart', [
+                { 
+                    x: sortedYears, 
+                    y: briers, 
+                    type: 'bar', 
+                    name: 'Your Brier',
+                    marker: { color: colors },
+                    text: hoverText,
+                    hoverinfo: 'text'
+                },
+                { 
+                    x: sortedYears, 
+                    y: avgBriers, 
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Contest Average',
+                    line: { color: '#888', width: 2, dash: 'dot' },
+                    marker: { color: '#888', size: 8 }
+                }
+            ], { 
+                xaxis: { title: 'Year', type: 'category' },
+                yaxis: { title: 'Brier Score', range: [0, Math.max(0.4, Math.max(...briers) * 1.1)] },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98 },
+                margin: { t: 20 },
+                plot_bgcolor: 'white',
+                bargap: 0.3
+            });
 
             document.getElementById('results').style.display = 'block';
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
